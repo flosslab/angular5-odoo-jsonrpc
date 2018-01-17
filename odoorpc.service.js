@@ -179,14 +179,15 @@ var OdooRPCService = /** @class */ (function () {
     OdooRPCService.prototype.getDbList = function () {
         return this.sendRequest("/web/database/get_list", {});
     };
-    OdooRPCService.prototype.searchRead = function (model, domain, fields, limit, offset) {
+    OdooRPCService.prototype.searchRead = function (model, domain, fields, limit, offset, context) {
+        if (context === void 0) { context = {}; }
         var params = {
             model: model,
             domain: domain,
             fields: fields,
             limit: limit,
             offset: offset,
-            context: this.context
+            context: context || this.context
         };
         return this.sendRequest("/web/dataset/search_read", params);
     };
