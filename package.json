@@ -1,6 +1,6 @@
 {
   "name": "angular5-odoo-jsonrpc",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Odoo JsonRPC Service for Angular 5",
   "main": "odoorpc.service.js",
   "scripts": {
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com:agenterp/angular5-odoo-jsonrpc.git"
+    "url": "https://github.com/agenterp/angular5-odoo-jsonrpc"
   },
   "keywords": [
     "odoo",
