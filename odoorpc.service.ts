@@ -208,6 +208,10 @@ export class OdooRPCService {
         return this.context;
     }
 
+    public getServer() {
+        return this.odoo_server;
+    }
+
     public call(model: string, method: string, args: any, kwargs: any) {
 
         kwargs = kwargs || {};
