@@ -1,5 +1,5 @@
-import { Injectable, Inject } from "@angular/core"
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import {Injectable, Inject} from "@angular/core"
+import {HttpClient, HttpHeaders} from '@angular/common/http';
 
 import "rxjs/add/operator/toPromise";
 
@@ -9,15 +9,19 @@ class Cookies { // cookies doesn't work with Android default browser / Ionic
 
     delete_sessionId() {
         this.session_id = null;
-        document.cookie = "session_id=; expires=Wed, 29 Jun 2016 00:00:00 UTC";
+        document.cookie = "session_id=; expires=Thu, 01-Jan-1970 00:00:01 GMT;";
     }
 
     get_sessionId() {
         return document
-                .cookie.split("; ")
-                .filter(x => { return x.indexOf("session_id") === 0; })
-                .map(x => { return x.split("=")[1]; })
-                .pop() || this.session_id || "";
+            .cookie.split("; ")
+            .filter(x => {
+                return x.indexOf("session_id") === 0;
+            })
+            .map(x => {
+                return x.split("=")[1];
+            })
+            .pop() || this.session_id || "";
     }
 
     set_sessionId(val: string) {
@@ -74,15 +78,18 @@ export class OdooRPCService {
         if (error.code === 200 && error.message === "Odoo Server Error" && error.data.name === "werkzeug.exceptions.NotFound") {
             errorObj.title = "page_not_found";
             errorObj.message = "HTTP Error";
-        } else if ( (error.code === 100 && error.message === "Odoo Session Expired") || // v8
-                    (error.code === 300 && error.message === "OpenERP WebClient Error" && error.data.debug.match("SessionExpiredException")) // v7
-                ) {
-                    errorObj.title = "session_expired";
-                    this.cookies.delete_sessionId();
-        } else if ( (error.message === "Odoo Server Error" && /FATAL:  database "(.+)" does not exist/.test(error.data.message))) {
+        } else if (error.code === 200 && error.message === "Odoo Server Error" && error.data.name === "builtins.ValueError") {
+            errorObj.title = "authentication failed";
+            errorObj.message = error.data.message;
+        } else if ((error.code === 100 && error.message === "Odoo Session Expired") || // v8
+            (error.code === 300 && error.message === "OpenERP WebClient Error" && error.data.debug.match("SessionExpiredException")) // v7
+        ) {
+            errorObj.title = "session_expired";
+            this.cookies.delete_sessionId();
+        } else if ((error.message === "Odoo Server Error" && /FATAL:  database "(.+)" does not exist/.test(error.data.message))) {
             errorObj.title = "database_not_found";
             errorObj.message = error.data.message;
-        } else if ( (error.data.name === "openerp.exceptions.AccessError")) {
+        } else if ((error.data.name === "openerp.exceptions.AccessError")) {
             errorObj.title = "AccessError";
             errorObj.message = error.data.message;
         } else {
@@ -124,8 +131,8 @@ export class OdooRPCService {
         let body = this.buildRequest(url, params);
         return this.http.post(this.odoo_server + url, body, {headers: this.headers})
             .toPromise()
-            .then(this.handleOdooErrors)
-            .catch(this.handleHttpErrors);
+            .then(response => this.handleOdooErrors(response))
+            .catch(error => this.handleHttpErrors(error));
     }
 
     public getServerInfo() {
@@ -138,12 +145,12 @@ export class OdooRPCService {
 
     public login(db: string, login: string, password: string) {
         let params = {
-                db : db,
-                login : login,
-                password : password
-            };
+            db: db,
+            login: login,
+            password: password
+        };
         let $this = this;
-        return this.sendRequest("/web/session/authenticate", params).then(function(result: any) {
+        return this.sendRequest("/web/session/authenticate", params).then(function (result: any) {
             if (!result.uid) {
                 $this.cookies.delete_sessionId();
                 return Promise.reject({
@@ -176,7 +183,7 @@ export class OdooRPCService {
                 if (r.db)
                     return this.login(r.db, "", "");
             });
-        }else {
+        } else {
             return Promise.resolve();
         }
     }
@@ -201,7 +208,7 @@ export class OdooRPCService {
         localStorage.setItem("user_context", JSON.stringify(context));
         let args = [[(<any>this.context).uid], context];
         this.call("res.users", "write", args, {})
-            .then(()=>this.context = context)
+            .then(() => this.context = context)
             .catch((err: any) => this.context = context);
     }
 
