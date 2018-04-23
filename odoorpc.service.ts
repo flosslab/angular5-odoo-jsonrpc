@@ -1,7 +1,10 @@
-import {Injectable, Inject} from "@angular/core"
+import {Inject, Injectable} from "@angular/core"
 import {HttpClient, HttpHeaders} from '@angular/common/http';
 
-import "rxjs/add/operator/toPromise";
+import {Observable} from "rxjs/Observable";
+import 'rxjs/add/operator/map';
+import 'rxjs/add/operator/catch';
+import 'rxjs/add/observable/of';
 
 class Cookies { // cookies doesn't work with Android default browser / Ionic
 
@@ -107,11 +110,11 @@ export class OdooRPCService {
                 errorObj.message = error.data.debug.replace(/\n/g, "<br />");
             }
         }
-        return Promise.reject(errorObj);
+        return Observable.throw(errorObj);
     }
 
     private handleHttpErrors(error: any) {
-        return Promise.reject(error.message || error);
+        return Observable.throw(error.message || error);
     }
 
     public init(configs: any) {
@@ -127,11 +130,10 @@ export class OdooRPCService {
         this.http_auth = http_auth;
     }
 
-    public sendRequest(url: string, params: Object): Promise<any> {
+    public sendRequest(url: string, params: Object): Observable<any> {
         let body = this.buildRequest(url, params);
         return this.http.post(this.odoo_server + url, body, {headers: this.headers})
-            .toPromise()
-            .then(response => this.handleOdooErrors(response))
+            .map(response => this.handleOdooErrors(response))
             .catch(error => this.handleHttpErrors(error));
     }
 
@@ -150,10 +152,10 @@ export class OdooRPCService {
             password: password
         };
         let $this = this;
-        return this.sendRequest("/web/session/authenticate", params).then(function (result: any) {
+        return this.sendRequest("/web/session/authenticate", params).map(function (result: any) {
             if (!result.uid) {
                 $this.cookies.delete_sessionId();
-                return Promise.reject({
+                return Observable.throw({
                     title: "wrong_login",
                     message: "Username and password don't match",
                     fullTrace: result
@@ -168,9 +170,9 @@ export class OdooRPCService {
 
     public isLoggedIn(force: boolean = true) {
         if (!force) {
-            return Promise.resolve(this.cookies.get_sessionId().length > 0);
+            return Observable.of(this.cookies.get_sessionId().length > 0);
         }
-        return this.getSessionInfo().then((result: any) => {
+        return this.getSessionInfo().map((result: any) => {
             this.cookies.set_sessionId(result.session_id);
             return !!(result.uid);
         });
@@ -179,12 +181,12 @@ export class OdooRPCService {
     public logout(force: boolean = true) {
         this.cookies.delete_sessionId();
         if (force) {
-            return this.getSessionInfo().then((r: any) => { // get db from sessionInfo
+            return this.getSessionInfo().map((r: any) => { // get db from sessionInfo
                 if (r.db)
                     return this.login(r.db, "", "");
             });
         } else {
-            return Promise.resolve();
+            return Observable.of();
         }
     }
 
@@ -208,7 +210,7 @@ export class OdooRPCService {
         localStorage.setItem("user_context", JSON.stringify(context));
         let args = [[(<any>this.context).uid], context];
         this.call("res.users", "write", args, {})
-            .then(() => this.context = context)
+            .map(() => this.context = context)
             .catch((err: any) => this.context = context);
     }
 
