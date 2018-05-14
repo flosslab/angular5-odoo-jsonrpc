@@ -33,6 +33,7 @@ class Cookies { // cookies doesn't work with Android default browser / Ionic
     }
 }
 
+
 @Injectable()
 export class OdooRPCService {
     private odoo_server: string;
@@ -40,7 +41,8 @@ export class OdooRPCService {
     private cookies: Cookies;
     private uniq_id_counter: number = 0;
     private shouldManageSessionId: boolean = false; // try without first
-    private context: Object = JSON.parse(localStorage.getItem("user_context")) || {"lang": "en_US"};
+    readonly default_context = {"lang": "en_US"};
+    private context: any = JSON.parse(localStorage.getItem("user_context")) || this.default_context;
     private headers: HttpHeaders;
 
     constructor(
@@ -56,9 +58,17 @@ export class OdooRPCService {
 
         this.headers = new HttpHeaders({
             "Content-Type": "application/json",
-            "X-Openerp-Session-Id": this.cookies.get_sessionId(),
             "Authorization": "Basic " + btoa(`${this.http_auth}`)
         });
+
+        if (!!this.context.uid) {
+            let headersTemp = this.headers;
+            headersTemp = headersTemp.append("X-Openerp-Session-Id", this.cookies.get_sessionId())
+            this.headers = headersTemp;
+        }
+
+        console.log("build request headers: " + this.headers.keys());
+
         return JSON.stringify({
             jsonrpc: "2.0",
             method: "call",
@@ -132,8 +142,19 @@ export class OdooRPCService {
 
     public sendRequest(url: string, params: Object): Observable<any> {
         let body = this.buildRequest(url, params);
-        return this.http.post(this.odoo_server + url, body, {headers: this.headers})
-            .map(response => this.handleOdooErrors(response))
+        return this.http.post(this.odoo_server + url, body, {headers: this.headers, observe: 'response'})
+            .map(response => {
+                if(!(!!this.context.uid)) {
+                    var setCookie = response.headers.get('Set-Cookie');
+                    if (!!setCookie) {
+                        var sessionId = setCookie.match(/session_id=(.*?);/)[1];
+                        if (!!sessionId) {
+                            this.cookies.set_sessionId(sessionId);
+                        }
+                    }
+                }
+                return this.handleOdooErrors(response.body)
+            })
             .catch(error => this.handleHttpErrors(error));
     }
 
@@ -180,6 +201,9 @@ export class OdooRPCService {
 
     public logout(force: boolean = true) {
         this.cookies.delete_sessionId();
+        localStorage.setItem("user_context", JSON.stringify(this.default_context));
+        this.context = this.default_context;
+
         if (force) {
             return this.getSessionInfo().map((r: any) => { // get db from sessionInfo
                 if (r.db)
