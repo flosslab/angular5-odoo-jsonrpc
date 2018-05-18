@@ -47,7 +47,7 @@ export class OdooRPCService {
     private headers: HttpHeaders;
 
     constructor(
-        @Inject(HttpClient) private http: HttpClient) {
+        @Inject(HttpClient) protected http: HttpClient) {
         this.cookies = new Cookies();
     }
 
