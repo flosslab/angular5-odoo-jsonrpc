@@ -71,6 +71,7 @@ export class OdooRPCService {
         console.log("build request headers: " + this.headers.keys());
 
         return JSON.stringify({
+            id: this.uniq_id_counter,
             jsonrpc: "2.0",
             method: "call",
             params: params, // payload
@@ -145,7 +146,7 @@ export class OdooRPCService {
         let body = this.buildRequest(url, params);
         return this.http.post(this.odoo_server + url, body, {headers: this.headers, observe: 'response'})
             .map(response => {
-                if(!(!!this.context.uid)) {
+                if (!(!!this.context.uid)) {
                     var setCookie = response.headers.get('Set-Cookie');
                     if (!!setCookie) {
                         var sessionId = setCookie.match(/session_id=(.*?);/)[1];
