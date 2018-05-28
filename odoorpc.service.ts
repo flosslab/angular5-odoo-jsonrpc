@@ -216,6 +216,15 @@ export class OdooRPCService {
         }
     }
 
+    public changePassword( old_password: string, new_password:string , confirm_password:string ){
+        let fields = [
+            {name: "old_pwd" , value: old_password} ,
+            {name: "new_password", value: new_password} ,
+            {name: "confirm_pwd", value: confirm_password }
+        ]
+        return this.sendRequest("/web/session/change_password", {"fields": fields});
+    }
+
     public getDbList() { // only use for odoo < 9.0
         return this.sendRequest("/web/database/get_list", {});
     }
