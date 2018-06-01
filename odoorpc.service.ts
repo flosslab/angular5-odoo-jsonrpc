@@ -6,6 +6,7 @@ import 'rxjs/add/observable/throw';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/catch';
 import 'rxjs/add/observable/of';
+import {EMPTY_MAP} from "@angular/core/src/view";
 
 class Cookies { // cookies doesn't work with Android default browser / Ionic
 
@@ -62,13 +63,13 @@ export class OdooRPCService {
             "Authorization": "Basic " + btoa(`${this.http_auth}`)
         });
 
+
+
         if (!!this.context.uid) {
             let headersTemp = this.headers;
             headersTemp = headersTemp.append("X-Openerp-Session-Id", this.cookies.get_sessionId())
             this.headers = headersTemp;
         }
-
-        console.log("build request headers: " + this.headers.keys());
 
         return JSON.stringify({
             id: this.uniq_id_counter,
@@ -78,7 +79,7 @@ export class OdooRPCService {
         });
     }
 
-    private handleOdooErrors(response: any) {
+    protected handleOdooErrors(response: any) {
         if (!response.error) {
             return response.result;
         }
@@ -201,26 +202,32 @@ export class OdooRPCService {
         });
     }
 
-    public logout(force: boolean = true) {
+    private resetContext() {
         this.cookies.delete_sessionId();
         localStorage.setItem("user_context", JSON.stringify(this.default_context));
         this.context = this.default_context;
+    }
+
+    public logout(force: boolean = true) {
 
         if (force) {
-            return this.getSessionInfo().map((r: any) => { // get db from sessionInfo
-                if (r.db)
-                    return this.login(r.db, "", "");
-            });
+            return this.sendRequest("/web/session/logout", {}).map(
+                res => {
+                    this.resetContext()
+                    return res;
+                }
+            );
         } else {
-            return Observable.of();
+            this.resetContext()
+            return Observable.of(false);
         }
     }
 
-    public changePassword( old_password: string, new_password:string , confirm_password:string ){
+    public changePassword(old_password: string, new_password: string, confirm_password: string) {
         let fields = [
-            {name: "old_pwd" , value: old_password} ,
-            {name: "new_password", value: new_password} ,
-            {name: "confirm_pwd", value: confirm_password }
+            {name: "old_pwd", value: old_password},
+            {name: "new_password", value: new_password},
+            {name: "confirm_pwd", value: confirm_password}
         ]
         return this.sendRequest("/web/session/change_password", {"fields": fields});
     }
